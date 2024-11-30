@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+	.text-balance {
+		text-wrap: balance;
+	}
+}
+
+.modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+
+.modal-box {
+	background: white;
+	padding: 20px;
+	border-radius: 8px;
+	position: relative;
+	width: 80%;
+	max-width: 500px;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Styling for WebKit browsers (Chrome, Safari) */
+::-webkit-scrollbar {
+	width: 12px; /* Width of the scrollbar */
+	height: 12px; /* Height of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+	background: #f1f1f1; /* Background of the scrollbar track */
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: #1da96d; /* Color of the scrollbar thumb */
+	border-radius: 6px; /* Rounded corners for the scrollbar thumb */
+	border: 3px solid #f1f1f1; /* Adds padding around the thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background-color: #198657; /* Darker color on hover */
+}
+
+/* Optional: Firefox scrollbar styling */
+* {
+	scrollbar-width: thin; /* Thin scrollbar */
+	scrollbar-color: #1da96d #f1f1f1; /* Thumb and track colors */
+}
