@@ -13,7 +13,7 @@ const Page = () => {
 				<OtherHeader />
 			</div>
 
-			{/* <ContentSwitcher/> */}
+			<ContentSwitcher/>
 		</main>
 	)
 }

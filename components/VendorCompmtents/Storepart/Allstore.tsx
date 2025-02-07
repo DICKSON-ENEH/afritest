@@ -168,18 +168,18 @@ const AllStores: React.FC = () => {
 							>
 								<td className="px-4 py-2 text-center">
 									<div className="font-semibold text-[13px]">
-										{store.owner_details.first_name} { " "}  {store.owner_details.last_name}
+										{store?.owner_details?.first_name} { " "}  {store?.owner_details?.last_name}
 									</div>
 								</td>
 								<td className="px-4 py-2 text-center">
 									<div className="font-semibold text-[13px]">
-										{store.owner_details.email}
+										{store.owner_details?.email}
 									</div>
 								</td>
 								<td className="px-4 py-2 text-center">
 									<Link href={`/Storepart`}>
 										<div className="font-semibold text-[13px] text-[#1da96d] cursor-pointer">
-											 {store.Business_profile.business_name} 
+											 {store.Business_profile?.business_name} 
 										</div>
 									</Link>
 								</td>
@@ -190,27 +190,27 @@ const AllStores: React.FC = () => {
 								</td>
 								<td className="px-4 py-2 text-center">
 									<div className="font-semibold text-[13px]">
-										{store.dateJoined}
+										{store?.dateJoined}
 									</div>
 								</td>
 								<td className="px-4 py-2 text-center">
 									<button
-										className={`btn-xs w-36 h-9 rounded-full flex items-center justify-center ${store.statusClass}`}
+										className={`btn-xs w-36 h-9 rounded-full flex items-center justify-center ${store?.statusClass}`}
 									>
-										{store.status === "Active" && (
+										{store?.status === "Active" && (
 											<div className="w-3 h-3 bg-green-700 rounded-full mr-2"></div>
 										)}
-										{store.status === "Rejected" && (
+										{store?.status === "Rejected" && (
 											<div className="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
 										)}
-										{store.status === "Disabled" && (
+										{store?.status === "Disabled" && (
 											<div className="w-3 h-3 bg-[#494a53] rounded-full mr-2"></div>
 										)}
-										{store.status === "Awaiting Approval" && (
+										{store?.status === "Awaiting Approval" && (
 											<div className="w-3 h-3 bg-[#ff9800] rounded-full mr-2"></div>
 										)}
 										<span className="font-semibold">
-											{store.status}
+											{store?.status}
 										</span>
 									</button>
 								</td>

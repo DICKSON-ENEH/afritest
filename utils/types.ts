@@ -66,9 +66,7 @@ interface VendorAccount {
 }
 
 export interface VendorInfo {
-	data?: {
-		message?: string
-	}
+_id?:any
 	length?:any
 	filter?:any
 	first_name: string
@@ -94,6 +92,14 @@ export interface VendorInfo {
 	business_certificate_of_incorperation_doc: string
 	business_menulist_of_product_doc: string
 	business_account: VendorAccount
+}
+
+export interface VendorInfoResponse{
+	data: {
+		message: string
+		status: boolean
+		vendors: VendorInfo[]
+	}
 }
 
 export interface PackageCategoryType {
@@ -144,5 +150,40 @@ export type UpdateResponseType = {
 	status: true
 	data: {
 		message: string
+	}
+}
+
+interface ProductSize {
+	title: string;
+	small?: number;
+	medium?: number;
+	large?: number;
+	xlarge?: number;
+	
+  }
+  interface Package {
+	package_category: string;
+	package_sub_category: string;
+	vendor: string;
+	package_type: string;
+	product_name: string;
+	product_img: string[];
+	product_description: string;
+	product_qty: number;
+	product_price: number;
+	product_size: ProductSize[];
+	created_at?: Date;
+	updated_at?: Date;
+	status?: boolean;
+	sku?: string;
+	is_available?: boolean;
+	discount_price?: number;
+  }
+
+  export interface ProductResponse {
+	data: {
+		message: string
+		status: boolean
+		packages: Package[]
 	}
 }

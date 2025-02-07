@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { RootState } from '../Store/Store'
-import { VendorInfo } from '../../utils/types'
+import { VendorInfo, VendorInfoResponse } from '../../utils/types'
 
 export const vendorApi = createApi({
 	reducerPath: 'vendorApi',
@@ -23,7 +23,7 @@ export const vendorApi = createApi({
 				body: data,
 			}),
 		}),
-		getVendors: build.query<VendorInfo, void>({
+		getVendors: build.query<VendorInfoResponse, void>({
 			query: () => ({
 				url: '/vendor',
 				method: 'GET',

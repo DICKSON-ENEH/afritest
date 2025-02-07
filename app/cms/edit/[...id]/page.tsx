@@ -7,11 +7,16 @@ import OtherHeader from '../../../../components/static/OtherHeader'
 import Content from '../../../../components/CmsComponents/Content'
 
 import { useGetContentByIDQuery } from '../../../../redux/services/cms'
+import { useParams } from 'next/navigation'
 
-function Page({ params }: { params: { id: string } }) {
+function Page() {
 
-	const { id } = params
+	const { id:convert } = useParams()
+	// console.log(id.toString())
+	const id = convert.toString()
+	console.log(id)
 	const { data: post, isLoading, error } = useGetContentByIDQuery(id)
+	console.log("this is single content", post)
 	const postToEdit = post?.data.cms
 	// console.log('Post to edit', post?.data.cms)
 

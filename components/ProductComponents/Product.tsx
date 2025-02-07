@@ -8,97 +8,165 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useAddProductMutation, useDeleteProductMutation, useGetAllSubPackageCategoryQuery, useGetPackageCategoryQuery, useGetProductsQuery, useGetSingleProductQuery } from "../../redux/services/productsApi";
+import { useGetVendorsQuery } from "../../redux/services/vendorApi";
+import { toast } from "react-toastify";
 
+import moment from "moment"
+import { BiSolidEditAlt } from "react-icons/bi";
+import { EditProduct } from "./EditProduct";
 // CreateProductModal component
 const CreateProductModal = ({
   isOpen,
   onClose,
-  onSaveProduct,
+  // onSaveProduct,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSaveProduct: (product: any) => void;
+  // onSaveProduct: (product: any) => void;
 }) => {
-  const [quality, setQuality] = useState(100);
+  const [quality, setQuality] = useState(1);
+  // console.log(quality)
   const [isAddSizeModalOpen, setIsAddSizeModalOpen] = useState(false);
   const [sizes, setSizes] = useState<
-    Array<{ title: string; quantity: number; notifyAt: number }>
+    Array<{ title: string; quantity: number }>
   >([]);
-  const [newSize, setNewSize] = useState({
-    title: "",
-    quantity: 20,
-    notifyAt: 15,
-  });
-  const [productImage, setProductImage] = useState<string | null>(null);
+
+  const {data} = useGetPackageCategoryQuery()
+  const {data:subs} = useGetAllSubPackageCategoryQuery()
+  const {data:vendors} = useGetVendorsQuery()
+
   const [productDetails, setProductDetails] = useState({
-    category: "Fashion",
-    subCategory: "Men wear",
-    type: "Shein",
-    name: "",
-    description: "",
-    price: "",
+    pacakage_category: '',
+    pacakage_sub_category: '',
+    vendor: " ",
+    pacakage_type: 'Shein', 
+    product_name: '',
+    // product_cash_back: 10, 
+    product_img: [],
+    product_link: "",
+    product_cash_back:"",
+    product_description: '',
+    product_price: "",
+    product_qty: quality,
+    product_size:sizes
   });
+    const [loading, setLoading]= useState(false)
 
-  if (!isOpen) return null;
+  console.log(productDetails)
 
+
+
+  const [productImages, setProductImages] = useState<any>([]);
+  // const [isAddSizeModalOpen, setIsAddSizeModalOpen] = useState(false);
+  // const [sizes, setSizes] = useState([]);
+  const [newSize, setNewSize] = useState({ title: '', quantity: 0, notifyAt: 0 });
+
+const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target
+    setProductDetails((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { files, id } = e.target;
+    if (files && files.length > 0) {
+      const uploadedImages = await Promise.all(
+        Array.from(files).map(async (file) => {
+          const localFilePath = URL.createObjectURL(file);
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', 'ml_default');
+  
+          const { secure_url } = await fetch(
+            'https://api.cloudinary.com/v1_1/dvtisceko/image/upload',
+            {
+              method: 'POST',
+              body: formData,
+            }
+          ).then(async (res) => await res.json());
+  
+          return {
+            localPath: localFilePath,
+            cloudinaryUrl: secure_url
+          };
+        })
+      );
+  
+     
+      setProductDetails((prev:any) => ({
+        ...prev,
+        product_img: [...prev.product_img, ...uploadedImages.map(img => img.cloudinaryUrl)]
+      }));
+  
+
+      setProductImages((prev:any) => [...prev, ...uploadedImages.map(img => img.localPath)]);
+    }
+  };
+const [addProduct] = useAddProductMutation()
+const {data:products} = useGetProductsQuery()
+console.log(products)
+const handleSaveCategory = async () => {
+  try {
+    // setLoading(true); 
+  
+    const response = await addProduct(productDetails).unwrap();
+    console.log("Response from API:", response);
+    if (response.status === true) {
+      // console.log("Product saved successfully");
+      // setLoading(false);
+
+
+
+      toast.success(response?.data?.message)
+      
+    }
+  } catch (error) {
+    console.error("Error saving product:", error);
+  }
+};
+// console.log(form)
   const openAddSizeModal = () => {
     setIsAddSizeModalOpen(true);
   };
 
   const closeAddSizeModal = () => {
     setIsAddSizeModalOpen(false);
-    setNewSize({ title: "", quantity: 20, notifyAt: 15 });
   };
 
   const handleSaveSize = () => {
-    setSizes([...sizes, newSize]);
+    setSizes((prev) => [...prev, newSize]);
+    setNewSize({ title: '', quantity: 0, notifyAt: 0 });
     closeAddSizeModal();
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProductImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
-  const handleInputChange = (
-    event: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value } = event.target;
-    setProductDetails((prev) => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    setProductDetails(prevDetails => ({
+      ...prevDetails,
+      product_qty: quality,
+    }));
+  }, [quality]);
 
-  const handleSaveProduct = () => {
-    const newProduct = {
-      ...productDetails,
-      quality,
-      sizes,
-      image: productImage,
-      dateAdded: new Date().toLocaleString(),
-      status: "Active",
-    };
-    onSaveProduct(newProduct);
-    onClose();
-  };
+  // Update product_size whenever sizes changes
+  useEffect(() => {
+    setProductDetails(prevDetails => ({
+      ...prevDetails,
+      product_size: sizes,
+    }));
+  }, [sizes]);
+
+
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto">
+    <form className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold">Create Product</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -107,158 +175,195 @@ const CreateProductModal = ({
             Kindly input the details of the product you are uploading.
           </p>
           <form className="space-y-4">
+            {/* Package Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Package Category
-              </label>
-              <div className="relative">
-                <select
-                  name="category"
-                  value={productDetails.category}
-                  onChange={handleInputChange}
-                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
-                >
-                  <option>Fashion</option>
-                  <option>Electronics</option>
-                  <option>Travel</option>
-                  <option>Telecom</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Package Category</label>
+              <select
+                name="pacakage_category"
+                value={productDetails.pacakage_category}
+                onChange={handleInputChange}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
+              >
+                <option value="">Select a category</option>
+                {data?.data?.packages?.map((pkg, index) => (
+                  <option key={index} value={pkg._id}>{pkg.name}</option>
+                ))}
+              </select>
             </div>
+            {/* Package Sub Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Package Sub Category
-              </label>
-              <div className="relative">
-                <select
-                  name="subCategory"
-                  value={productDetails.subCategory}
-                  onChange={handleInputChange}
-                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
-                >
-                  <option>Men wear</option>
-                  <option>Women wear</option>
-                  <option>Children wear</option>
-                  <option>Footwear</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Package Sub Category</label>
+              <select
+                name="pacakage_sub_category"
+                value={productDetails.pacakage_sub_category}
+                onChange={handleInputChange}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
+              >
+                <option value="">Select a sub category</option>
+
+                {subs?.data?.sub_packages?.map((subPkg, index) => (
+                  <option key={index} value={subPkg._id}>{subPkg.name}</option>
+                ))}
+              </select>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Package Type
-              </label>
-              <div className="relative">
-                <select
-                  name="type"
-                  value={productDetails.type}
-                  onChange={handleInputChange}
-                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
-                >
-                  <option>Shein</option>
-                  <option>Nike</option>
-                  <option>Adidas</option>
-                  <option>Puma</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
+              <select
+                name="vendor"
+                value={productDetails.vendor}
+                onChange={handleInputChange}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
+              >
+                <option value="">Select a vendor</option>
+
+                {vendors?.data.vendors?.map((vendors, index) => (
+                  <option key={index} value={vendors._id}>{vendors.first_name + " " + vendors.last_name}</option>
+                ))}
+              </select>
             </div>
+            {/* Package Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Name
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Package Type</label>
+              <select
+                name="pacakage_type"
+                value={productDetails.pacakage_type}
+                onChange={handleInputChange}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
+              >
+                <option>Shein</option>
+                <option>Nike</option>
+                <option>Adidas</option>
+                <option>Puma</option>
+              </select>
+            </div>
+            {/* Product Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
               <input
                 type="text"
-                name="name"
-                value={productDetails.name}
+                name="product_name"
+                value={productDetails.product_name}
                 onChange={handleInputChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                 placeholder="Black Tee"
               />
             </div>
+            {/* Product Image */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Image
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
               <div className="mt-1 flex items-center space-x-2">
                 <label className="cursor-pointer p-2 border border-gray-300 rounded-md">
                   <input
                     type="file"
                     className="hidden"
-                    onChange={handleImageUpload}
+                    onChange={handleFileUpload}
                     accept="image/*"
+                    multiple
                   />
                   <Upload className="w-5 h-5 text-gray-400" />
                 </label>
-                {productImage ? (
-                  <img
-                    src={productImage}
-                    alt="Product"
-                    className="w-12 h-12 object-cover rounded-md"
-                  />
+                {productImages.length > 0 ? (
+                  <div className="flex items-center space-x-2">
+                    {productImages.map((image:any, index:any) => (
+                      <img
+                        key={index}
+                        src={image}
+                        alt={`Product ${index + 1}`}
+                        className="w-12 h-12 object-cover rounded-md"
+                      />
+                    ))}
+                  </div>
                 ) : (
                   <div className="w-12 h-12 bg-gray-200 rounded-md"></div>
                 )}
               </div>
             </div>
+            {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
               <textarea
-                name="description"
-                value={productDetails.description}
+                name="product_description"
+                value={productDetails.product_description}
+                //@ts-ignore
                 onChange={handleInputChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                 rows={3}
                 placeholder="Plain Black Round Neck Tee"
               ></textarea>
             </div>
+            {/* Product Price */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Price
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Product Price</label>
               <input
                 type="text"
-                name="price"
-                value={productDetails.price}
+                name="product_price"
+                value={productDetails.product_price}
                 onChange={handleInputChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                 placeholder="₦ 2,500"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Quality
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cashback %</label>
+              <input
+                type="number"
+                name="product_cash_back"
+                value={productDetails.product_cash_back}
+                onChange={handleInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="10"
+              /> 
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Product Link</label>
+              <input
+                type="text"
+                name="product_link"
+                value={productDetails.product_link}
+                onChange={handleInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="https://sample-url.com"
+              />
+            </div>
+            {/* Quality */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quality</label>
               <div className="mt-1 flex rounded-md shadow-sm">
                 <button
                   type="button"
-                  onClick={() => setQuality(Math.max(0, quality - 1))}
+                  onClick={(()=>{
+                    setQuality(quality-1)
+                  })}
                   className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                 >
                   <Minus className="w-5 h-5" />
                 </button>
                 <input
                   type="number"
-                  value={quality}
-                  onChange={(e) => setQuality(parseInt(e.target.value) || 0)}
+                name="product_qty"
+
+                  value={productDetails.product_qty}
+               onChange={((e:any)=>{
+                setQuality(e.target.value)
+               })}
                   className="focus:ring-green-500 focus:border-green-500 block w-full text-center border-gray-300 rounded-none sm:text-sm"
                 />
                 <button
                   type="button"
-                  onClick={() => setQuality(quality + 1)}
+                  onClick={(()=>{
+                    setQuality(quality+1)
+                  })}
                   className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                 >
                   <Plus className="w-5 h-5" />
                 </button>
               </div>
             </div>
+            {/* Size */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Size
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Size</label>
               <button
                 type="button"
                 onClick={openAddSizeModal}
@@ -268,8 +373,7 @@ const CreateProductModal = ({
               </button>
               {sizes.map((size, index) => (
                 <div key={index} className="mt-2 p-2 bg-gray-100 rounded">
-                  {size.title} - Quantity: {size.quantity}, Notify at:{" "}
-                  {size.notifyAt}
+                  {size.title} - Quantity: {size.quantity},
                 </div>
               ))}
             </div>
@@ -284,7 +388,7 @@ const CreateProductModal = ({
           </button>
           <button
             type="button"
-            onClick={handleSaveProduct}
+            onClick={handleSaveCategory}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
           >
             Save Product
@@ -298,45 +402,29 @@ const CreateProductModal = ({
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-semibold">Add Size</h2>
-              <button
-                onClick={closeAddSizeModal}
-                className="text-gray-400 hover:text-gray-600"
-              >
+              <button onClick={closeAddSizeModal} className="text-gray-400 hover:text-gray-600">
                 <X className="w-6 h-6" />
               </button>
             </div>
             <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4">
-                Add new sizes for the product you are uploading
-              </p>
+              <p className="text-sm text-gray-600 mb-4">Add new sizes for the product you are uploading</p>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Size</label>
                   <input
                     type="text"
                     value={newSize.title}
-                    onChange={(e) =>
-                      setNewSize({ ...newSize, title: e.target.value })
-                    }
+                    onChange={(e) => setNewSize({ ...newSize, title: e.target.value })}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                     placeholder="Small"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Quantity
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                   <div className="mt-1 flex rounded-md shadow-sm">
                     <button
                       type="button"
-                      onClick={() =>
-                        setNewSize({
-                          ...newSize,
-                          quantity: Math.max(0, newSize.quantity - 1),
-                        })
-                      }
+                      onClick={() => setNewSize({ ...newSize, quantity: Math.max(0, newSize.quantity - 1) })}
                       className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                     >
                       <Minus className="w-5 h-5" />
@@ -344,45 +432,19 @@ const CreateProductModal = ({
                     <input
                       type="number"
                       value={newSize.quantity}
-                      onChange={(e) =>
-                        setNewSize({
-                          ...newSize,
-                          quantity: parseInt(e.target.value) || 0,
-                        })
-                      }
-                      className="focus:ring-green-500 focus:border-green-500  block w-full text-center border-gray-300 rounded-none sm:text-sm"
+                      onChange={(e) => setNewSize({ ...newSize, quantity: parseInt(e.target.value) || 0 })}
+                      className="focus:ring-green-500 focus:border-green-500 block w-full text-center border-gray-300 rounded-none sm:text-sm"
                     />
                     <button
                       type="button"
-                      onClick={() =>
-                        setNewSize({
-                          ...newSize,
-                          quantity: newSize.quantity + 1,
-                        })
-                      }
+                      onClick={() => setNewSize({ ...newSize, quantity: newSize.quantity + 1 })}
                       className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                     >
                       <Plus className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notify me at
-                  </label>
-                  <input
-                    type="number"
-                    value={newSize.notifyAt}
-                    onChange={(e) =>
-                      setNewSize({
-                        ...newSize,
-                        notifyAt: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                    placeholder="15"
-                  />
-                </div>
+            
               </div>
             </div>
             <div className="flex justify-end space-x-3 px-6 py-3 bg-gray-50 rounded-b-lg">
@@ -398,131 +460,46 @@ const CreateProductModal = ({
                 onClick={handleSaveSize}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
               >
-                Save Size
+               {
+                loading?"Saving":"Save Product"
+               }
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </form>
   );
 };
 
- const Product=() =>{
+ const Product=(id:any) =>{
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>();
-  const [products, setProducts] = useState([
-    // ... (other products)
-    {
-      id: 1,
-      name: "Black Tee",
-      category: "Fashion",
-      subCategory: "Men's Wear",
-      type: "Shein",
-      price: "N2,500",
-      dateAdded: "31st July, 2023 11:27 AM",
-      status: "Active",
-      image: "/placeholder.svg?height=50&width=50",
-      description: "Plain Black Round Neck Tee",
-      quantity: 100,
-      sizes: [
-        { name: "Small", quantity: 20 },
-        { name: "Medium", quantity: 20 },
-        { name: "Large", quantity: 20 },
-        { name: "Extra Large", quantity: 20 },
-        { name: "Extra Extra Large", quantity: 20 },
-      ],
-    },
-    {
-      id: 2,
-      name: "Black Tee",
-      category: "Fashion",
-      subCategory: "Men's Wear",
-      type: "Shein",
-      price: "N2,500",
-      dateAdded: "31st July, 2023 11:27 AM",
-      status: "Active",
-      image: "/placeholder.svg?height=50&width=50",
-      description: "Plain Black Round Neck Tee",
-      quantity: 100,
-      sizes: [
-        { name: "Small", quantity: 20 },
-        { name: "Medium", quantity: 20 },
-        { name: "Large", quantity: 20 },
-        { name: "Extra Large", quantity: 20 },
-        { name: "Extra Extra Large", quantity: 20 },
-      ],
-    },
-    {
-      id: 3,
-      name: "Black Tee",
-      category: "Fashion",
-      subCategory: "Men's Wear",
-      type: "Shein",
-      price: "N2,500",
-      dateAdded: "31st July, 2023 11:27 AM",
-      status: "Inactive",
-      image: "/placeholder.svg?height=50&width=50",
-      description: "Plain Black Round Neck Tee",
-      quantity: 100,
-      sizes: [
-        { name: "Small", quantity: 20 },
-        { name: "Medium", quantity: 20 },
-        { name: "Large", quantity: 20 },
-        { name: "Extra Large", quantity: 20 },
-        { name: "Extra Extra Large", quantity: 20 },
-      ],
-    },
-    {
-      id: 4,
-      name: "Black Tee",
-      category: "Fashion",
-      subCategory: "Men's Wear",
-      type: "Shein",
-      price: "N2,500",
-      dateAdded: "31st July, 2023 11:27 AM",
-      status: "Inactive",
-      image: "/placeholder.svg?height=50&width=50",
-      description: "Plain Black Round Neck Tee",
-      quantity: 100,
-      sizes: [
-        { name: "Small", quantity: 20 },
-        { name: "Medium", quantity: 20 },
-        { name: "Large", quantity: 20 },
-        { name: "Extra Large", quantity: 20 },
-        { name: "Extra Extra Large", quantity: 20 },
-      ],
-    },
-    {
-      id: 5,
-      name: "Black Tee",
-      category: "Fashion",
-      subCategory: "Men's Wear",
-      type: "Shein",
-      price: "N2,500",
-      dateAdded: "31st July, 2023 11:27 AM",
-      status: "Active",
-      image: "/placeholder.svg?height=50&width=50",
-      description: "Plain Black Round Neck Tee",
-      quantity: 100,
-      sizes: [
-        { name: "Small", quantity: 20 },
-        { name: "Medium", quantity: 20 },
-        { name: "Large", quantity: 20 },
-        { name: "Extra Large", quantity: 20 },
-        { name: "Extra Extra Large", quantity: 20 },
-      ],
-    },
-  ]);
+  const [isEdit, setIsEdit] = useState(false);
 
-  const handleSaveProduct = (newProduct: any) => {
-    setProducts([...products, { ...newProduct, id: products.length + 1 }]);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  console.log(selectedProduct, "selected")
+  
+  const {data:products} = useGetProductsQuery()
+  const { data: singleProduct, error } = useGetSingleProductQuery({ selectedProduct }, {
+    skip: !selectedProduct,
+  });
+  console.log(singleProduct, "single")
+  // console.table(products)
+
+
+
+
+  const [deleteproduct] = useDeleteProductMutation()
+  const handleDeleteProduct = async (productId:any) => {
+    try {
+      await deleteproduct({ selectedProduct:productId }).unwrap();
+      toast.success("Product deleted successfully");
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast.error("Failed to delete product");
+    }
   };
-
-  const handleDeleteProduct = (id: number) => {
-    setProducts(products.filter((product) => product.id !== id));
-  };
-
+  
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
 
   const toggleDropdown = (id: number) => {
@@ -576,41 +553,44 @@ const CreateProductModal = ({
             </tr>
           </thead>
           <tbody className="bg-white">
-            {products.map((product:any) => (
+            {products?.data?.products?.map((product:any) => (
               <tr
                 key={product.id}
                 className="border-b border-gray-200 cursor-pointer hover:bg-gray-50"
-                onClick={() => setSelectedProduct(product)}
+                onClick={((e:any)=>{
+                  e.stopPropagation()
+                  setSelectedProduct(product._id)
+                })}
               >
                 <td className="py-4 px-6 text-sm">
-                  <div className="flex items-center">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
+                  <div className="flex items-center flex-col">
+                    <img
+                      src={product?.product_img[0]}
+                      alt={product.product_name}
                       width={40}
                       height={40}
                       className="w-10 h-10 mr-2 object-cover rounded-lg"
                     />
                     <span className="font-medium text-gray-900">
-                      {product.name}
+                      {product.product_name}
                     </span>
                   </div>
                 </td>
                 <td className="py-4 px-6 text-sm">
                   <span className="font-medium text-green-500">
-                    {product.category}
+                    {product.pacakage_category}
                   </span>
                 </td>
                 <td className="py-4 px-6 text-sm">
                   <span className="font-medium text-green-500">
-                    {product.subCategory}
+                    {product.pacakage_sub_category}
                   </span>
                 </td>
                 <td className="py-4 px-6 text-sm text-gray-500">
-                  {product.type}
+                  {product.pacakage_type}
                 </td>
                 <td className="py-4 px-6 text-sm text-gray-500">
-                  {product.price}
+                  {product.product_price}
                 </td>
                 <td className="py-4 px-6 text-sm text-gray-500">
                   {product.dateAdded}
@@ -631,24 +611,46 @@ const CreateProductModal = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleDropdown(product.id);
+                        toggleDropdown(product._id);
                       }}
                       className="text-gray-400 hover:text-gray-500"
                     >
                       <MoreVertical className="w-5 h-5" />
                     </button>
-                    {dropdownOpen === product.id && (
+                    {dropdownOpen === product._id && (
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
                         <div className="py-1">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteProduct(product.id);
+                  setSelectedProduct(product._id)
+                  setDropdownOpen(null);
+
+                              handleDeleteProduct(product._id)
+                              // handleDeleteProduct(product.id);
                             }}
                             className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // handleDeleteProduct(product.id);
+                  setSelectedProduct(product._id)
+
+
+setIsEdit(true)
+setDropdownOpen(null);
+
+                            }}
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                          >
+                            <BiSolidEditAlt />
+                            {/* <Trash2 className="w-4 h-4 mr-2" /> */}
+                            Edit
                           </button>
                           {/* Add more dropdown options here */}
                         </div>
@@ -682,11 +684,22 @@ const CreateProductModal = ({
         </div>
       </div>
 
-      <CreateProductModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSaveProduct={handleSaveProduct}
-      />
+{
+  isModalOpen &&       <CreateProductModal
+  isOpen={isModalOpen}
+  onClose={() => setIsModalOpen(false)}
+  
+/>
+}
+
+{
+  isEdit &&       <EditProduct
+  selectedProduct={selectedProduct}
+  isOpen={isEdit}
+  onClose={() => setIsEdit(false)}
+  
+/>
+}
 
       {/* Sliding Panel */}
       <div
@@ -694,7 +707,7 @@ const CreateProductModal = ({
           selectedProduct ? "translate-x-0" : "translate-x-full"
         } transition-transform duration-300 ease-in-out overflow-y-auto`}
       >
-        {selectedProduct && (
+        {singleProduct?.data?.products && (
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">View Match</h2>
@@ -711,7 +724,7 @@ const CreateProductModal = ({
                   Category
                 </label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {selectedProduct.category}
+                  {singleProduct?.data?.products?.pacakage_category}
                 </p>
               </div>
               <div>
@@ -719,7 +732,7 @@ const CreateProductModal = ({
                   Sub Category
                 </label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {selectedProduct.subCategory}
+                  {singleProduct?.data?.products?.pacakage_sub_category}
                 </p>
               </div>
               <div>
@@ -727,7 +740,7 @@ const CreateProductModal = ({
                   Package Type
                 </label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {selectedProduct.type}
+                  {singleProduct?.data?.products?.pacakage_type}
                 </p>
               </div>
               <div>
@@ -735,7 +748,7 @@ const CreateProductModal = ({
                   Product Name
                 </label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {selectedProduct.name}
+                  {singleProduct?.data?.products?.product_name}
                 </p>
               </div>
               <div>
@@ -743,11 +756,11 @@ const CreateProductModal = ({
                   Product Image
                 </label>
                 <div className="mt-1 flex space-x-2">
-                  {[1, 2, 3, 4].map((_, index) => (
-                    <Image
+                  {singleProduct?.data?.products?.product_img.map((props:any, index:number) => (
+                    <img
                       key={index}
-                      src={selectedProduct.image}
-                      alt={`${selectedProduct.name} ${index + 1}`}
+                      src={props}
+                      alt={`image ${index + 1}`}
                       width={50}
                       height={50}
                       className="w-12 h-12 object-cover rounded-md"
@@ -760,7 +773,7 @@ const CreateProductModal = ({
                   Description
                 </label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {selectedProduct.description}
+                  {singleProduct?.data?.products?.product_description}
                 </p>
               </div>
               <div>
@@ -768,7 +781,7 @@ const CreateProductModal = ({
                   Price
                 </label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {selectedProduct.price}
+                  {singleProduct?.data?.products?.product_price}
                 </p>
               </div>
               <div>
@@ -776,7 +789,7 @@ const CreateProductModal = ({
                   Quantity
                 </label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {selectedProduct.quantity}
+                  {singleProduct?.data?.products?.product_qty}
                 </p>
               </div>
               <div>
@@ -784,10 +797,10 @@ const CreateProductModal = ({
                   Sizes
                 </label>
                 <ul className="mt-1 text-sm text-gray-900">
-                  {selectedProduct.sizes.map((size, index) => (
+                  {singleProduct?.data?.products?.product_size.map((size:any, index:any) => (
                     <li
                       key={index}
-                    >{`${size.name} - ${size.quantity} pieces`}</li>
+                    >{`${size?.size} - ${size?.quantity} pieces`}</li>
                   ))}
                 </ul>
               </div>
@@ -796,7 +809,7 @@ const CreateProductModal = ({
                   Date Added
                 </label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {selectedProduct.dateAdded}
+                  {moment(singleProduct?.data?.products?.createdAt).format('MM/DD/YYYY')}
                 </p>
               </div>
               <div>
@@ -804,7 +817,7 @@ const CreateProductModal = ({
                   Status
                 </label>
                 <p className="mt-1 text-sm text-gray-900">
-                  {selectedProduct.status}
+                  {singleProduct?.data?.products?.status}
                 </p>
               </div>
             </div>

@@ -15,9 +15,9 @@ const PostEditor = ({ postToEdit }: { postToEdit?: iCMS }) => {
 
 	const [title, setTitle] = useState('')
 	const [description, setDescription] = useState('')
-	const [postDate, setPostDate] = useState('')
-	const [expiryDate, setExpiryDate] = useState('')
-	const [image, setImage] = useState<File | null>(null)
+	const [postDate, setPostDate] = useState<any>('')
+	const [expiryDate, setExpiryDate] = useState<any>('')
+	const [image, setImage] = useState<File | any>(null)
 	const [caption, setCaption] = useState('')
 	const [url, setUrl] = useState('')
 	const [isPreviewOpen, setIsPreviewOpen] = useState(false)
@@ -30,6 +30,12 @@ const PostEditor = ({ postToEdit }: { postToEdit?: iCMS }) => {
 			setTitle(postToEdit?.title || '')
 			setDescription(postToEdit?.description || '')
 			setCaption(postToEdit?.caption || '')
+			setUrl(postToEdit?.url || '')
+			setImage(postToEdit?.image || null)
+			setPostDate(postToEdit?.postDate || "")
+			setExpiryDate(postToEdit?.expiryDate)
+			setSelectedPath(postToEdit?.path[0] || "")
+			// setIsPreviewOpen(true)
 		}
 	}, [postToEdit])
 
@@ -204,7 +210,7 @@ const PostEditor = ({ postToEdit }: { postToEdit?: iCMS }) => {
 								<input
 									id="upload"
 									type="file"
-									required
+									// required
 									name="file"
 									accept="image/*"
 									className="hidden"
@@ -275,14 +281,14 @@ const PostEditor = ({ postToEdit }: { postToEdit?: iCMS }) => {
 						<input
 							type="date"
 							className="w-1/2 p-2 border rounded-md"
-							required
+							// required
 							value={postDate}
 							onChange={(e) => setPostDate(e.target.value)}
 						/>
 						<input
 							type="time"
 							className="w-1/2 p-2 border rounded-md"
-							required
+							// required
 						/>
 					</div>
 
@@ -291,13 +297,13 @@ const PostEditor = ({ postToEdit }: { postToEdit?: iCMS }) => {
 						<input
 							type="date"
 							className="w-1/2 p-2 border rounded-md"
-							required
+							// required
 							value={expiryDate}
 							onChange={(e) => setExpiryDate(e.target.value)}
 						/>
 						<input
 							type="time"
-							required
+							// required
 							className="w-1/2 p-2 border rounded-md"
 						/>
 					</div>

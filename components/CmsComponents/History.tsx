@@ -5,6 +5,7 @@ import { HiOutlineDotsVertical } from 'react-icons/hi'
 import ContentDetail from './ContentDetail'
 import { HistoryAction } from './Action'
 import { useDeleteCMSMutation, useGetCMSQuery } from '../../redux/services/cms'
+import { toast } from 'react-toastify'
 
 export interface HistoryItem {
 	title: string
@@ -105,6 +106,7 @@ const History: React.FC = () => {
 		try {
 			const response = await deleteCMS(id).unwrap()
 			console.log(response)
+			toast.success("deleted successfully")
 		} catch (error: any) {
 			console.log(error)
 		}
@@ -213,6 +215,7 @@ const History: React.FC = () => {
 										{showDropdown === index && (
 											<HistoryAction
 												onViewDetails={() => handleViewDetails(el)}
+												id={el._id}
 												onDeleteCMS={() => handleDeleteCMS(el._id)}
 											/>
 										)}

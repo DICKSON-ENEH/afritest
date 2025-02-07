@@ -42,6 +42,48 @@ export const productsApi = createApi({
 			},
 		}),
 
+		addProduct: build.mutation<any, any>({
+			query: (body:any) => ({
+			  url: '/products',
+			  method: 'POST',
+			  body,
+			}),
+		  }),
+		  editProduct: build.mutation< any,  any>({
+		  query: ({ selectedProduct, body }) => {
+			//   const newBody = JSON.stringify(body)
+			//   console.log('this is the body', newBody)
+			  return {
+				  url: `/products/${selectedProduct}`,
+				  method: 'PUT',
+				  body,
+			  }
+		  },
+	  }),
+	  deleteProduct: build.mutation<any, { selectedProduct: string }>({
+		query: ({ selectedProduct }) => ({
+		  url: `/products/${selectedProduct}`,
+		  method: 'DELETE',
+		}),
+	  }),
+	  
+
+
+	getProducts: build.query<any, void>({
+			query: () => ({
+				url: '/products',
+				method: 'GET',
+			}),
+		}),
+
+
+	getSingleProduct: build.query<any, { selectedProduct: string }>({
+		query: ({ selectedProduct }) => ({
+		  url: `/products/${selectedProduct}`,
+		  method: 'GET',
+		}),
+	  }),
+
 		getPackageCategoryById: build.query<
 			PackageCategoryResponse,
 			{ id: string }
@@ -91,8 +133,9 @@ export const productsApi = createApi({
 		}),
 		getSubPackageCategoryById: build.query<
 			SubPackageCategoryResponse,
-			{ id: string }
-		>({
+			{ id: string }>
+		
+		({
 			query: ({ id }) => ({
 				url: `/packages/subpackage/${id}`,
 				method: 'GET',
@@ -135,4 +178,9 @@ export const {
 	useActivateSubPackageCategoryMutation,
 	useDeactivateSubPackageCategoryMutation,
 	useDeleteSubPackageCategoryMutation,
+	useAddProductMutation, useGetProductsQuery,
+	useGetSingleProductQuery,
+	useEditProductMutation,
+	useDeleteProductMutation
+	
 } = productsApi

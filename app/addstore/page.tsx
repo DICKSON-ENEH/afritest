@@ -34,6 +34,7 @@ const AddStoreForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 	const [currentStep, setCurrentStep] = useState(1)
 	const [showAddAccountModal, setShowAddAccountModal] = useState<boolean>(false)
 	const [formData, setFormData] = useState<VendorInfo>({
+
 		first_name: '',
 		last_name: '',
 		email: '',
@@ -129,6 +130,8 @@ const AddStoreForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 				if (result.status === true) {
 					toast.success(result?.data?.message)
 					console.log(result.data?.message)
+				console.log('this is response', result)
+
 					setCurrentStep(1)
 				}
 			} catch (error: any) {
