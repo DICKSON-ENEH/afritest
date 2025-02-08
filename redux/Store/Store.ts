@@ -11,6 +11,7 @@ import {
 	cmsUpdateApi,
 } from '../services/cms'
 import { vendorApi } from '../services/vendorApi'
+import { bannerApi } from '../services/banner.Api'
 import { productsApi } from '../services/productsApi'
 
 const persistConfig = {
@@ -28,6 +29,7 @@ const rootReducer = combineReducers({
 	[cmsUpdateApi.reducerPath]: cmsUpdateApi.reducer,
 	[vendorApi.reducerPath]: vendorApi.reducer,
 	[productsApi.reducerPath]: productsApi.reducer,
+	[bannerApi.reducerPath]: bannerApi.reducer,
 	user: userReducer,
 })
 
@@ -46,6 +48,7 @@ export const store = configureStore({
 			cmsGetContentByIdApi.middleware,
 			cmsUpdateApi.middleware,
 			vendorApi.middleware,
+			bannerApi.middleware,
 			productsApi.middleware
 		),
 })

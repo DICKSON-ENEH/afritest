@@ -7,18 +7,93 @@ import { MdOutlineCancel } from "react-icons/md";
 import { PiUpload } from "react-icons/pi";
 import DeactivatePopup from "./DeactivatePopup";
 import CreateBannerPopup from "./CreateBannerPopup";
+import { useAddBannersMutation } from "../../redux/services/banner.Api";
+import { toast } from "react-toastify";
 
 const CreateBanner: React.FC = () => {
 	const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 	const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 	const [selectedAudience, setSelectedAudience] = useState<any>([]);
-	const [selectedPlatform, setSelectedPlatform] = useState<any>([]);
+	const [selectedPlatform, setSelectedPlatform] = useState("");
 	const [showPopUp, setShowPopUp] = useState(false);
 	const [startDate, setStartDate] = useState<string>("");
 	const [endDate, setEndDate] = useState<string>("");
 	const [startTime, setStartTime] = useState<string>("");
 	const [endTime, setEndTime] = useState<string>("");
+	const [link, setLink] = useState<string>("");
+const [addBanner] = useAddBannersMutation()
+const [isLoading, setIsLoading] = useState(false);
+console.log(selectedPlatform)
 
+
+
+const handleAddBanner = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (!uploadedFile) {
+      toast.error('Please select an image');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Create FormData for Cloudinary
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
+      formData.append('upload_preset', 'ml_default');
+
+      // Upload to Cloudinary
+      const cloudinaryResponse = await fetch(
+        'https://api.cloudinary.com/v1_1/dvtisceko/image/upload',
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!cloudinaryResponse.ok) {
+        throw new Error('Failed to upload to Cloudinary');
+      }
+
+      const { secure_url } = await cloudinaryResponse.json();
+
+      // Prepare dates with times
+      const fullStartDate = `${startDate}T${startTime}:00`;
+      const fullEndDate = `${endDate}T${endTime}:00`;
+
+      // Get audience values
+      const audienceValues = selectedAudience.map((option: any) => option.value);
+
+      // Send to API
+      const response = await addBanner({
+        view_order: audienceValues,
+        select_platform: selectedPlatform,
+        img_url: secure_url,
+        start_date: fullStartDate,
+        end_date: fullEndDate,
+		link:link
+      }).unwrap();
+
+      if (response.status === true) {
+        toast.success(response?.data?.message);
+        resetForm();
+      }
+    } catch (error: any) {
+      console.error("Error:", error);
+      toast.error(error.message || 'Failed to create banner');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setUploadedFile(null);
+    setSelectedPlatform("");
+    setSelectedAudience([]);
+    setStartDate("");
+    setEndDate("");
+    setStartTime("");
+    setEndTime("");
+  };
 	const handleClick = () => {
 		if (fileInputRef.current) {
 			fileInputRef.current.click();
@@ -48,17 +123,16 @@ const CreateBanner: React.FC = () => {
 		setUploadedFile(null);
 	};
 
-	const audienceOptions = [
-		{ value: "allUser", label: "All User" },
-		{ value: "newUser", label: "New User" },
-		{ value: "activeUser", label: "Active User" },
-		{ value: "businessAccountType", label: "Business Account Type" },
+const audienceOptions = [
+		{ value: "all_User", label: "All User" },
+		{ value: "new_User", label: "New User" },
+		{ value: "active_User", label: "Active User" },
+		{ value: "business_Account_Type", label: "Business Account Type" },
 		{
-			value: "individualAccountType",
+			value: "individual_Account_Type",
 			label: "Individual Account Type",
 		},
 	];
-
 	const customStyles = {
 		option: (provided: any, state: any) => ({
 			...provided,
@@ -89,45 +163,13 @@ const CreateBanner: React.FC = () => {
 			backgroundColor: "#d1fae5",
 		}),
 	};
-
 	const platformOptions = [
-		{ value: "user-mobile-app", label: "User Mobile App" },
-		{ value: "user-web-app", label: "User Web App" },
-		{ value: "driver-app", label: "Driver App" },
-		{ value: "hub-app", label: "Hub App" },
-	];
-
-	const Styles = {
-		control: (provided: any) => ({
-			...provided,
-			borderColor: "#D1D5DB",
-			minHeight: "48px",
-			boxShadow: "none",
-		}),
-		option: (provided: any, state: any) => ({
-			...provided,
-			backgroundColor: state.isSelected
-				? "#10B981"
-				: state.isFocused
-				? "#D1FAE5"
-				: "white",
-			color: state.isSelected
-				? "white"
-				: state.isFocused
-				? "#065F46"
-				: "black",
-			padding: "12px 16px",
-		}),
-		menu: (provided: any) => ({
-			...provided,
-			marginTop: 0,
-			borderRadius: "0.375rem",
-		}),
-		menuList: (provided: any) => ({
-			...provided,
-			padding: 0,
-		}),
-	};
+		{ value: "User_Mobile_App", label: "User Mobile App" },
+		{ value: "User_Web_App", label: "User Web App" },
+		{ value: "Driver_App", label: "Driver App" },
+		{ value: "Hub_App", label: "Hub App" }
+	  ];
+	
 
 	const CheckboxOption = (props: any) => {
 		return (
@@ -155,11 +197,6 @@ const CreateBanner: React.FC = () => {
 		);
 	};
 
-	const handleCreatedClick = () => {
-		if (isFormValid()) {
-			setShowPopUp(true);
-		}
-	};
 
 	const handleClosePopup = () => {
 		setShowPopUp(false);
@@ -176,13 +213,16 @@ const CreateBanner: React.FC = () => {
 								Select Platform
 							</label>
 							<Select
-								styles={customStyles}
-								options={platformOptions}
-								value={selectedPlatform}
-								placeholder="Select Platform"
-								className="mt-1"
-								onChange={setSelectedPlatform}
-							/>
+  styles={customStyles}
+  options={platformOptions}
+  value={selectedPlatform ? 
+    platformOptions.find(option => option.value === selectedPlatform) : 
+    null
+  }
+  placeholder="Select Platform"
+  className="mt-1"
+  onChange={(selected: any) => setSelectedPlatform(selected.value)}
+/>
 						</div>
 						<div className="mb-4">
 							<label className="block text-gray-700">
@@ -262,6 +302,7 @@ const CreateBanner: React.FC = () => {
 								<input
 									type="date"
 									className="w-full mt-1 p-2 border rounded"
+									required
 									value={startDate}
 									onChange={(e) => setStartDate(e.target.value)}
 								/>
@@ -273,6 +314,7 @@ const CreateBanner: React.FC = () => {
 								<input
 									type="date"
 									className="w-full mt-1 p-2 border rounded"
+									required
 									value={endDate}
 									onChange={(e) => setEndDate(e.target.value)}
 								/>
@@ -286,6 +328,7 @@ const CreateBanner: React.FC = () => {
 								<input
 									type="time"
 									className="w-full mt-1 p-2 border rounded"
+									required
 									value={startTime}
 									onChange={(e) => setStartTime(e.target.value)}
 								/>
@@ -297,6 +340,7 @@ const CreateBanner: React.FC = () => {
 								<input
 									type="time"
 									className="w-full mt-1 p-2 border rounded"
+									required
 									value={endTime}
 									onChange={(e) => setEndTime(e.target.value)}
 								/>
@@ -304,12 +348,15 @@ const CreateBanner: React.FC = () => {
 						</div>
 						<div className="mb-4">
 							<label className="block text-gray-700">
-								Link (optional)
+								Link 
 							</label>
 							<input
 								type="url"
 								className="w-full mt-1 p-2 border rounded text-green-500"
 								placeholder="Input Link"
+								required
+								value={link}
+								onChange={(e) => setLink(e.target.value)}
 							/>
 						</div>
 						<div className="flex justify-end space-x-4">
@@ -326,7 +373,7 @@ const CreateBanner: React.FC = () => {
 										? "hover:bg-green-600 bg-green-500"
 										: "bg-gray-400 cursor-not-allowed"
 								}`}
-								onClick={handleCreatedClick}
+								onClick={handleAddBanner}
 								disabled={!isFormValid()}
 							>
 								Create Banner
